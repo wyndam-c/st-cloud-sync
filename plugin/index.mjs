@@ -222,6 +222,7 @@ function testConnection() {
 export async function init(router) {
     router.use(express.json({ limit: '1mb' }));
     logLine('插件已加载 (v2 双向/多用户)');
+    if (!fs.existsSync(CONFIG_PATH)) { try { persistConfig(); } catch { /* ignore */ } }
     try { writeProfile(); } catch (e) { logLine(`写 profile 失败: ${e.message}`); }
     scheduleAutoSync();
 
