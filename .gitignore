@@ -1,0 +1,15 @@
+# 插件运行时产物（含 SSH/主机等私有配置）
+plugin/config.json
+plugin/last-sync.log
+*.log
+
+# 系统
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# 打包产物
+dist/
+*.zip
+*.tar.gz

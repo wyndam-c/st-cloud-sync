@@ -1,0 +1,11 @@
+{
+    "display_name": "云同步 (Cloud Sync)",
+    "loading_order": 60,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "白鸦 / 小草",
+    "version": "1.0.0",
+    "homePage": ""
+}
