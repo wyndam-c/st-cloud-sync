@@ -58,11 +58,43 @@ cd st-cloud-sync
 然后：
 
 1. 确认远端也装了**同版本** unison：`unison -version`（两边输出要一致）。
-2. 拿到一把免密 SSH 私钥（如 `~/.ssh/id_ed25519`），其公钥已写入远端 `~/.ssh/authorized_keys`。
+2. **准备一把免密登录远端的 SSH 私钥**（没有就现生成一把，见下方「🔑 生成并安装 SSH 私钥」）。
 3. 酒馆 `config.yaml` 设 `enableServerPlugins: true` 并重启酒馆。
 4. 打开酒馆 →「扩展」→ **云同步 (Cloud Sync)** → 填远端主机/用户/data 路径/私钥 → **保存配置** → 先点 **试运行**（可选）→ 再点 **立即同步**。
 
 > 首次同步务必先看日志；要删本地多余文件请确认「同步方向/删除」策略符合预期。
+
+### 🔑 生成并安装 SSH 私钥（免密登录远端）
+
+在**本地**（跑酒馆插件的那台）执行：
+
+```bash
+# 1) 生成一把专用密钥： -N "" = 不设密码（免密）；-f 指定私钥文件路径
+ssh-keygen -t ed25519 -f ~/.ssh/cloud_sync_ed25519 -N "" -C "st-cloud-sync@$(hostname)"
+#   → 生成两个文件：
+#      ~/.ssh/cloud_sync_ed25519      私钥（留在本地，面板里填这个路径）
+#      ~/.ssh/cloud_sync_ed25519.pub  公钥（下面要装到远端）
+
+# 2) 把【公钥】装到远端（会提示输入一次远端账户密码）
+ssh-copy-id -i ~/.ssh/cloud_sync_ed25519.pub root@REMOTE_HOST
+
+#    ✔ 等价的手动做法（没有 ssh-copy-id 时用，例如 Windows/PowerShell）：
+#    cat ~/.ssh/cloud_sync_ed25519.pub | ssh root@REMOTE_HOST \
+#      'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys'
+
+# 3) 验证免密：**不再提示输入密码** 就是成功（能打印远端主机名）
+ssh -i ~/.ssh/cloud_sync_ed25519 root@REMOTE_HOST hostname
+```
+
+要点：
+
+- **私钥**（`…ed25519`，无 `.pub`）→ 只留本地，面板「SSH 私钥」填它的**绝对路径**。
+- **公钥**（`…ed25519.pub`）→ 装到远端 `~/.ssh/authorized_keys`（远端用哪个账户登录，就装到哪个账户的 `~` 下；非 `root` 时换成对应用户）。
+- 已经有现成密钥？把上面的 `-f` 换成你的路径即可；想看公钥内容用 `cat ~/.ssh/你的密钥.pub`。
+- 远端 `~/.ssh` 权限要 `700`、`authorized_keys` 要 `600`，否则 sshd 会**拒绝**该公钥。
+- 本地酒馆若跑在 **Docker** 里，私钥得挂载进容器，面板填**容器内**路径。
+
+> 更细的手动排错（权限、非 root 用户、Docker/Windows）见 [docs/INSTALL.md](docs/INSTALL.md#1-准备-ssh-免密)。
 
 ## ⚙️ 配置项
 

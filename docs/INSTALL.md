@@ -11,16 +11,56 @@
 
 ## 1. 准备 SSH 免密
 
-在**本地**（跑插件的那台）生成一把专用钥匙：
+同步靠 SSH 免密：**私钥留在本地**（跑插件的那台），**公钥装到远端**。没有现成密钥就按下面现生成一把。
+
+### 1.1 生成密钥对（在本地执行）
 
 ```bash
+# -N "" = 不设密码（免密）；-f 指定私钥路径；-C 只是备注
 ssh-keygen -t ed25519 -f ~/.ssh/cloud_sync_ed25519 -N "" -C "st-cloud-sync@$(hostname)"
-ssh-copy-id -i ~/.ssh/cloud_sync_ed25519.pub user@REMOTE_HOST
-# 验证：
-ssh -i ~/.ssh/cloud_sync_ed25519 user@REMOTE_HOST hostname
 ```
 
-> 如果本地酒馆是 Docker 跑的，这把钥匙要放在**容器内**能访问到的位置（建议挂载进容器）。
+会生成：
+
+| 文件 | 内容 | 去向 |
+| --- | --- | --- |
+| `~/.ssh/cloud_sync_ed25519` | **私钥**（保密）| 留在本地；面板「SSH 私钥」填它的绝对路径 |
+| `~/.ssh/cloud_sync_ed25519.pub` | **公钥** | 装到远端 `~/.ssh/authorized_keys` |
+
+> 已有密钥（如 `~/.ssh/id_ed25519`）？跳过这一步，把它当私钥用即可；公钥就是同目录的 `.pub` 文件，或 `ssh-keygen -y -f 私钥` 反推。
+>
+> 私钥文件权限建议 `chmod 600 ~/.ssh/cloud_sync_ed25519`。
+
+### 1.2 把公钥装到远端
+
+**便捷方式**（推荐，会提示输入一次远端账户密码）：
+
+```bash
+ssh-copy-id -i ~/.ssh/cloud_sync_ed25519.pub root@REMOTE_HOST
+```
+
+**手动方式**（没有 `ssh-copy-id`，如 Windows / 精简系统）：
+
+```bash
+cat ~/.ssh/cloud_sync_ed25519.pub | ssh root@REMOTE_HOST \
+  'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys'
+```
+
+也可以手动把 `~/.ssh/cloud_sync_ed25519.pub` 的内容粘到远端 `~/.ssh/authorized_keys` 末尾（一行一个公钥）。
+
+> - 远端用**哪个账户**跑酒馆/被登录，就装到那个账户的 `~` 下（上面示例是 `root`）。
+> - 权限必须对：远端 `~/.ssh` = `700`，`~/.ssh/authorized_keys` = `600`；否则 sshd 会**静默拒绝**。
+> - 远端 `sshd_config` 一般默认就允许公钥登录；若不行，确认 `PubkeyAuthentication yes`。
+
+### 1.3 验证免密
+
+```bash
+ssh -i ~/.ssh/cloud_sync_ed25519 -o BatchMode=yes root@REMOTE_HOST hostname
+```
+
+能直接打印远端主机名、**不再问密码** = 成功。`BatchMode=yes` 强制不交互，失败会直接报错，便于排查。
+
+> 若本地酒馆是 Docker 跑的，这把私钥要放在**容器内**能访问到的位置（建议挂载进容器，如 `-v ~/.ssh:/home/node/.ssh:ro`），面板里填**容器内**路径。
 
 ## 2. 在两端安装 unison（版本要一致）
 
