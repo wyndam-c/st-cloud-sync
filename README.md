@@ -50,7 +50,7 @@ A SillyTavern **server plugin + extension** that **bidirectionally** syncs the w
 ## 🚀 快速开始
 
 ```bash
-git clone https://github.com/<you>/st-cloud-sync.git
+git clone https://github.com/wyndam-c/st-cloud-sync.git
 cd st-cloud-sync
 ./install.sh /path/to/SillyTavern        # 默认会自动探测常见路径
 ```

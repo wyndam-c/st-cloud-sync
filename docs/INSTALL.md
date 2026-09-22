@@ -38,7 +38,7 @@ unison -version        # 两边输出必须一致，例如 2.53.3 (ocaml 4.14.1)
 ## 3. 装插件
 
 ```bash
-git clone https://github.com/<you>/st-cloud-sync.git
+git clone https://github.com/wyndam-c/st-cloud-sync.git
 cd st-cloud-sync
 ./install.sh /path/to/SillyTavern
 ```
