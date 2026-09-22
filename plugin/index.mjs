@@ -27,6 +27,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const info = {
     id: 'st-cloud-sync',
     name: 'ST Cloud Sync',
+    version: '1.0.0',
     description: 'Bidirectional sync of the whole SillyTavern data dir (all users) between this instance and a remote one, via Unison over SSH.',
 };
 

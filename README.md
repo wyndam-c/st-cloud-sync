@@ -5,6 +5,9 @@
 A SillyTavern **server plugin + extension** that **bidirectionally** syncs the whole `data` directory (all users) between two taverns, powered by **Unison over SSH**.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.0.0-brightgreen.svg)](CHANGELOG.md)
+[![SillyTavern](https://img.shields.io/badge/SillyTavern-server%20plugin-7c3aed.svg)](https://github.com/SillyTavern/SillyTavern)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Docker%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](docs/INSTALL.md)
 
 ---
 
@@ -135,3 +138,11 @@ ssh -i ~/.ssh/cloud_sync_ed25519 root@REMOTE_HOST hostname
 ## 📄 License
 
 [MIT](LICENSE) © 2026 WhiteCrow
+
+## 🏷️ 版本
+
+当前版本 **v1.0.0**。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+
+- 扩展面板显示的版本来自 `extension/manifest.json` 的 `version`
+- 服务端插件版本来自 `plugin/index.mjs` 的 `info.version`
+- GitHub 页面上的“版本”来自 **Releases / Tag**（当前 tag：`v1.0.0`）
