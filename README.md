@@ -5,7 +5,7 @@
 A SillyTavern **server plugin + extension** that **bidirectionally** syncs the whole `data` directory (all users) between two taverns, powered by **Unison over SSH**.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.1.0-brightgreen.svg)](CHANGELOG.md)
 [![SillyTavern](https://img.shields.io/badge/SillyTavern-server%20plugin-7c3aed.svg)](https://github.com/SillyTavern/SillyTavern)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Docker%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](docs/INSTALL.md)
 
@@ -17,6 +17,10 @@ A SillyTavern **server plugin + extension** that **bidirectionally** syncs the w
 - 👥 **多用户**：同步根是 `data/` 整个目录，**所有用户目录自动纳入**，无需逐个配置。
 - ⚖️ **冲突安全**：冲突时「较新者赢」，被覆盖的一方保留为 `xxx (conflict_on_日期)` 副本，**不静默丢数据**；Unison 还会为改动/删除的文件留旧版本备份。
 - ⏰ **定时 + 手动**：可设每 N 分钟自动同步（默认 10），也能在酒馆「扩展」面板里一键「立即同步 / 中止 / 试运行」。
+- 🎛️ **一键定方向**：「按云酒馆同步」(云→本) / 「按本地酒馆同步」(本→云) 两个按钮，一次性定向，不动保存的配置。
+- 🚦 **增量 / 全量可选**：默认按「大小 + 时间」快速增量判断；切一下即变全量内容校验（更保险）。
+- 📊 **实时进度弹窗**：进度条 / 当前文件 / 计数 / 耗时 / 实时日志，可中止、可后台运行。
+- 🟡 **文件占用不误报**：你正在用酒馆、文件被占用而跳过的，会标成「正在使用，下轮自动补」，不算失败。
 - ⚙️ **面板可配**：主机、端口、两边 data 路径、SSH 私钥、同步方向、冲突策略、排除项、定时间隔，全在 UI 里改。
 - 🧩 **零第三方运行时依赖**：插件只用 Node 内置模块；引擎是系统的 `unison` + `ssh`。
 - 🧯 **默认不动服务端私有文件**：`_storage`(账号库) / `cookie-secret.txt` / 日志 / 构建产物自动排除。
@@ -111,6 +115,7 @@ ssh -i ~/.ssh/cloud_sync_ed25519 root@REMOTE_HOST hostname
 | `sshKey` | `/root/.ssh/cloud_sync_ed25519` | 免密登录远端的私钥 |
 | `direction` | `both` | `both` 双向 / `to_local` 云→本 / `to_remote` 本→云 |
 | `prefer` | `newer` | 冲突策略：`newer` / `local` / `remote` |
+| `incremental` | `true` | 增量同步：`true` 按「大小+时间」快速判断 / `false` 关掉 `fastcheck` 做全量内容校验（更慢更保险）|
 | `autoSyncMinutes` | `10` | 自动同步间隔分钟；`0` = 关 |
 | `excludes` | 见下 | 忽略项（按 basename 匹配）|
 
@@ -124,11 +129,11 @@ ssh -i ~/.ssh/cloud_sync_ed25519 root@REMOTE_HOST hostname
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/status` | 状态 + 配置 + 用户列表 + 日志尾部 |
+| GET | `/status` | 状态 + 配置 + 用户列表 + 日志尾部 + **进度** |
 | GET | `/config` | 读配置 |
 | POST | `/config` | 存配置（同时重写 Unison profile）|
 | POST | `/test` | 测 SSH + 远端 unison 版本 |
-| POST | `/sync` | 开始同步 |
+| POST | `/sync` | 开始同步。可选 body `{"direction":"both|to_local|to_remote"}` 做**一次性方向覆盖**（不改保存的配置，跑完自动恢复）|
 | POST | `/abort` | 中止 |
 
 ## 🧰 常见问题
@@ -141,8 +146,8 @@ ssh -i ~/.ssh/cloud_sync_ed25519 root@REMOTE_HOST hostname
 
 ## 🏷️ 版本
 
-当前版本 **v1.0.0**。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本 **v1.1.0**。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 - 扩展面板显示的版本来自 `extension/manifest.json` 的 `version`
 - 服务端插件版本来自 `plugin/index.mjs` 的 `info.version`
-- GitHub 页面上的“版本”来自 **Releases / Tag**（当前 tag：`v1.0.0`）
+- GitHub 页面上的“版本”来自 **Releases / Tag**（当前 tag：`v1.1.0`）
