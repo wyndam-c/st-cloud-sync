@@ -76,6 +76,8 @@
         $el('stcs_dir').value = c.direction ?? 'both';
         $el('stcs_prefer').value = c.prefer ?? 'newer';
         $el('stcs_auto').value = c.autoSyncMinutes ?? 0;
+        $el('stcs_upcheck').value = c.autoUpdateCheckMinutes ?? 0;
+        $el('stcs_autoupd').checked = c.autoUpdate === true;
         $el('stcs_incremental').checked = c.incremental !== false;
         $el('stcs_excludes').value = (c.excludes || []).join('\n');
     }
@@ -93,6 +95,8 @@
             prefer: $el('stcs_prefer').value,
             incremental: !!$el('stcs_incremental').checked,
             autoSyncMinutes: Number($el('stcs_auto').value) || 0,
+            autoUpdateCheckMinutes: Number($el('stcs_upcheck').value) || 0,
+            autoUpdate: !!$el('stcs_autoupd').checked,
             excludes: $el('stcs_excludes').value.split('\n').map(s => s.trim()).filter(Boolean),
         };
     }
@@ -159,6 +163,77 @@
         const m = $el('stcs_modal');
         if (m) m.style.display = 'none';
         pendingManualOpen = false;   // 主人主动关掉，就别再自动弹
+    }
+
+    // ---------------- 插件更新（检查 / 一键拉取） ----------------
+
+    function renderUpdate(u) {
+        if (!u) return;
+        const ver = $el('stcs_ver');
+        if (ver) ver.textContent = 'v' + (u.runningVersion || '?') + (u.isGit ? '' : ' · 非 git 安装');
+        const note = $el('stcs_update_note');
+        const btn = $el('stcs_do_update');
+        const hideBtn = () => { if (btn) btn.classList.add('stcs-hidden'); };
+        if (!note) return;
+        if (!u.isGit) {
+            note.style.display = '';
+            note.className = 'stcs-update-note stcs-muted';
+            note.textContent = 'ℹ️ 当前不是 git 安装，不能自动更新。跑一次 ./install.sh --git 重装即可启用。';
+            hideBtn();
+            return;
+        }
+        if (u.error) {
+            note.style.display = '';
+            note.className = 'stcs-update-note stcs-warn';
+            note.textContent = '检查更新失败：' + u.error;
+            hideBtn();
+            return;
+        }
+        if (u.behind > 0) {
+            note.style.display = '';
+            note.className = 'stcs-update-note stcs-has-update';
+            note.textContent = `🆕 发现新版本 ${u.latest ? 'v' + u.latest : ''}（落后 ${u.behind} 个提交）`
+                + (u.subject ? '：' + u.subject : '') + ' · 更新后需重启酒馆生效';
+            if (btn) btn.classList.remove('stcs-hidden');
+            return;
+        }
+        if (u.behind === 0) {
+            note.style.display = '';
+            note.className = 'stcs-update-note stcs-ok';
+            note.textContent = '✅ 已是最新版本' + (u.checkedAt ? `（${String(u.checkedAt).slice(11, 19)} 检查）` : '');
+        } else {
+            note.style.display = 'none';
+        }
+        hideBtn();
+    }
+
+    async function checkUpdateNow() {
+        try {
+            const r = await api('/update/check', { method: 'POST', body: {} });
+            renderUpdate(r.update || {});
+            const u = r.update || {};
+            if (!u.isGit) toastr.info('当前不是 git 安装，无法自动更新');
+            else if (u.error) toastr.error('检查更新失败：' + u.error);
+            else if (u.behind > 0) toastr.warning(`发现新版本 ${u.latest ? 'v' + u.latest : ''}，点「一键更新」`);
+            else toastr.success('已是最新版本');
+        } catch (e) {
+            toastr.error('检查更新失败：' + e.message);
+        }
+    }
+
+    async function applyUpdateNow() {
+        try {
+            const r = await api('/update/apply', { method: 'POST', body: {} });
+            if (r.updated) {
+                toastr.success(`已更新 ${r.before} → ${r.after}，请重启酒馆生效`);
+                if (r.extDirs) toastr.info(`前端扩展已刷新 ${r.extDirs} 处，刷新页面可见`);
+            } else {
+                toastr.info('已经是最新版本了');
+            }
+            try { renderUpdate((await api('/update')).update); } catch { /* ignore */ }
+        } catch (e) {
+            toastr.error('更新失败：' + e.message);
+        }
     }
 
     function renderProgress(s) {
@@ -273,6 +348,7 @@
             else setStatus('就绪', '');
 
             if (s.users) $el('stcs_users').textContent = `用户(${s.users.length}): ${s.users.join(', ') || '—'}`;
+            if (s.update) renderUpdate(s.update);
             renderLog(s.log);
 
             // 只有手动发起的同步才自动弹出进度窗；自动同步不打扰（可用「查看进度」打开）
@@ -348,6 +424,12 @@
   <div class="inline-drawer-content">
     <div class="stcs-status" id="stcs_status">加载中…</div>
     <div class="stcs-users" id="stcs_users"></div>
+    <div class="stcs-version-row">
+      <span class="stcs-ver">插件 <b id="stcs_ver">—</b></span>
+      <div class="menu_button stcs-mini" id="stcs_check_update" title="从 GitHub 检查是否有新版本">检查更新</div>
+      <div class="menu_button stcs-mini stcs-hidden" id="stcs_do_update" title="从 GitHub 拉取新版本（更新后需重启酒馆）">⬆️ 一键更新</div>
+    </div>
+    <div class="stcs-update-note" id="stcs_update_note" style="display:none"></div>
     <div class="stcs-row"><label>远端主机</label><input type="text" id="stcs_host"></div>
     <div class="stcs-row"><label>端口</label><input type="number" id="stcs_port" style="max-width:120px"></div>
     <div class="stcs-row"><label>远端用户</label><input type="text" id="stcs_user"></div>
@@ -376,6 +458,12 @@
     </div>
     <div class="stcs-row"><label>profile 名</label><input type="text" id="stcs_profile"></div>
     <div class="stcs-row"><label>自动同步(分钟)</label><input type="number" id="stcs_auto" min="0" style="max-width:120px"><span style="opacity:.7;font-size:.85em">0=关闭</span></div>
+    <div class="stcs-row"><label>自动检查更新(分钟)</label><input type="number" id="stcs_upcheck" min="0" style="max-width:120px"><span style="opacity:.7;font-size:.85em">0=关闭</span></div>
+    <div class="stcs-row"><label>发现新版自动更新</label>
+      <label class="checkbox_label" style="flex:1" title="勾选=检查到新版就自动从 GitHub 拉取（仍需重启酒馆生效）">
+        <input type="checkbox" id="stcs_autoupd"> <span style="font-size:.85em;opacity:.8">自动拉取（更新后需重启酒馆）</span>
+      </label>
+    </div>
     <div class="stcs-row"><label>排除项(每行一个)</label><textarea id="stcs_excludes" rows="3" style="flex:1 1 200px"></textarea></div>
     <div class="stcs-btns">
       <div class="menu_button" id="stcs_save">保存配置</div>
@@ -407,6 +495,8 @@
             toastr[r.ok ? 'success' : 'error'](r.ok ? `OK: ${r.stdout.split('\n')[0]}` : '连接失败');
         }));
         $el('stcs_show').addEventListener('click', () => { pendingManualOpen = true; refresh(); showModal(null); refresh(); });
+        $el('stcs_check_update').addEventListener('click', checkUpdateNow);
+        $el('stcs_do_update').addEventListener('click', applyUpdateNow);
         $el('stcs_sync_cloud').addEventListener('click', () => syncNow('to_local', '「按云酒馆同步」'));
         $el('stcs_sync_local').addEventListener('click', () => syncNow('to_remote', '「按本地酒馆同步」'));
         $el('stcs_sync').addEventListener('click', () => syncNow(null, '同步'));

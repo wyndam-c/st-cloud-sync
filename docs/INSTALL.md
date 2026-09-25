@@ -99,6 +99,32 @@ INSTALL_GLOBAL_EXT=1 ./install.sh /srv/SillyTavern # 扩展装全局第三方目
 
 重启酒馆。
 
+### 3.1 想让插件能自动更新？（推荐 `--git`）
+
+```bash
+./install.sh --git /path/to/SillyTavern
+```
+
+区别在于安装方式：
+
+| | 普通安装 | `--git` 安装 |
+| --- | --- | --- |
+| 插件目录 | 复制 `plugin/index.mjs` 过去 | 整个仓库 `git clone` 到 `plugins/st-cloud-sync/` |
+| 酒馆自带「更新插件」按钮 | ✗ 认不出（不是 git 仓库）| ✓ 可用 |
+| 面板「检查更新 / 一键更新」 | 显示「非 git 安装」提示 | ✓ 可用，还支持定时自动检查 / 自动拉取 |
+| 已有 `config.json` | — | 自动搬回，配置不丢 |
+
+更新方式（任选）：
+
+```bash
+# 命令行
+./update.sh /path/to/SillyTavern          # 拉代码 + 刷新扩展 + 提示重启
+
+# 或直接在酒馆面板：扩展 → 云同步 → 「检查更新」→「⬆️ 一键更新」
+```
+
+> 不管哪种方式，**更新完都要重启酒馆**才生效（插件是启动时加载的）；浏览器再 `Ctrl+F5`。
+
 ## 4. 面板配置
 
 酒馆 →「扩展」→ **云同步 (Cloud Sync)**：

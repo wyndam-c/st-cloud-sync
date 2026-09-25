@@ -5,7 +5,7 @@
 A SillyTavern **server plugin + extension** that **bidirectionally** syncs the whole `data` directory (all users) between two taverns, powered by **Unison over SSH**.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.0-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-brightgreen.svg)](CHANGELOG.md)
 [![SillyTavern](https://img.shields.io/badge/SillyTavern-server%20plugin-7c3aed.svg)](https://github.com/SillyTavern/SillyTavern)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Docker%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](docs/INSTALL.md)
 
@@ -21,6 +21,7 @@ A SillyTavern **server plugin + extension** that **bidirectionally** syncs the w
 - 🚦 **增量 / 全量可选**：默认按「大小 + 时间」快速增量判断；切一下即变全量内容校验（更保险）。
 - 📊 **实时进度弹窗**：进度条 / 当前文件 / 计数 / 耗时 / 实时日志，可中止、可后台运行。
 - 🟡 **文件占用不误报**：你正在用酒馆、文件被占用而跳过的，会标成「正在使用，下轮自动补」，不算失败。
+- 🔄 **插件可自更新**：面板里「检查更新 / 一键更新」直接从 GitHub 拉新版（`--git` 安装时还能用酒馆自带的更新按钮）。
 - ⚙️ **面板可配**：主机、端口、两边 data 路径、SSH 私钥、同步方向、冲突策略、排除项、定时间隔，全在 UI 里改。
 - 🧩 **零第三方运行时依赖**：插件只用 Node 内置模块；引擎是系统的 `unison` + `ssh`。
 - 🧯 **默认不动服务端私有文件**：`_storage`(账号库) / `cookie-secret.txt` / 日志 / 构建产物自动排除。
@@ -60,6 +61,8 @@ A SillyTavern **server plugin + extension** that **bidirectionally** syncs the w
 git clone https://github.com/wyndam-c/st-cloud-sync.git
 cd st-cloud-sync
 ./install.sh /path/to/SillyTavern        # 默认会自动探测常见路径
+# 想让它能自动更新（推荐）：
+./install.sh --git /path/to/SillyTavern
 ```
 
 然后：
@@ -116,6 +119,9 @@ ssh -i ~/.ssh/cloud_sync_ed25519 root@REMOTE_HOST hostname
 | `direction` | `both` | `both` 双向 / `to_local` 云→本 / `to_remote` 本→云 |
 | `prefer` | `newer` | 冲突策略：`newer` / `local` / `remote` |
 | `incremental` | `true` | 增量同步：`true` 按「大小+时间」快速判断 / `false` 关掉 `fastcheck` 做全量内容校验（更慢更保险）|
+| `autoUpdateCheckMinutes` | `0` | 自动检查插件更新的间隔分钟；`0` = 关 |
+| `autoUpdate` | `false` | `true` = 检查到新版就自动 `git pull`（仍需重启酒馆生效）|
+| `updateBranch` | `main` | 从哪个分支拉插件新版本 |
 | `autoSyncMinutes` | `10` | 自动同步间隔分钟；`0` = 关 |
 | `excludes` | 见下 | 忽略项（按 basename 匹配）|
 
@@ -135,6 +141,9 @@ ssh -i ~/.ssh/cloud_sync_ed25519 root@REMOTE_HOST hostname
 | POST | `/test` | 测 SSH + 远端 unison 版本 |
 | POST | `/sync` | 开始同步。可选 body `{"direction":"both|to_local|to_remote"}` 做**一次性方向覆盖**（不改保存的配置，跑完自动恢复）|
 | POST | `/abort` | 中止 |
+| GET | `/update` | 插件更新状态（是否 git 安装 / 当前版本 / 落后几个提交）|
+| POST | `/update/check` | 立即检查更新（`git fetch` + 比对）|
+| POST | `/update/apply` | 一键更新（`git pull --ff-only` + 刷新扩展三件套）|
 
 ## 🧰 常见问题
 
@@ -146,8 +155,8 @@ ssh -i ~/.ssh/cloud_sync_ed25519 root@REMOTE_HOST hostname
 
 ## 🏷️ 版本
 
-当前版本 **v1.1.0**。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本 **v1.2.0**。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 - 扩展面板显示的版本来自 `extension/manifest.json` 的 `version`
 - 服务端插件版本来自 `plugin/index.mjs` 的 `info.version`
-- GitHub 页面上的“版本”来自 **Releases / Tag**（当前 tag：`v1.1.0`）
+- GitHub 页面上的“版本”来自 **Releases / Tag**（当前 tag：`v1.2.0`）

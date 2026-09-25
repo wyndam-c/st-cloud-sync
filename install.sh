@@ -2,18 +2,38 @@
 # ST Cloud Sync — 安装脚本
 #
 # 用法:
-#   ./install.sh [/path/to/SillyTavern]
+#   ./install.sh [/path/to/SillyTavern]           # 普通安装（复制文件）
+#   ./install.sh --git [/path/to/SillyTavern]     # git 安装（可自动更新，推荐）
 #
 # 环境变量:
 #   ST_DIR              指定酒馆目录（含 server.js）
 #   USER_DIR            用户目录名（默认 default-user）
 #   INSTALL_GLOBAL_EXT=1 扩展装到全局第三方目录而非用户目录
+#   REPO_URL            --git 模式用的仓库地址（默认本项目的 GitHub）
+#   GIT_BRANCH          --git 模式用的分支（默认 main）
 set -euo pipefail
 
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ST_DIR="${1:-${ST_DIR:-}}"
 USER_DIR="${USER_DIR:-default-user}"
 INSTALL_GLOBAL_EXT="${INSTALL_GLOBAL_EXT:-0}"
+GIT_MODE=0
+REPO_URL="${REPO_URL:-https://github.com/wyndam-c/st-cloud-sync.git}"
+GIT_BRANCH="${GIT_BRANCH:-main}"
+ST_DIR="${ST_DIR:-}"
+
+# ---- 解析参数 ----
+for a in "$@"; do
+  case "$a" in
+    --git) GIT_MODE=1 ;;
+    --git-url=*) REPO_URL="${a#*=}" ;;
+    --git-branch=*) GIT_BRANCH="${a#*=}" ;;
+    -h|--help)
+      sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      exit 0 ;;
+    -*) ;;
+    *) ST_DIR="$a" ;;
+  esac
+done
 
 # 自动探测酒馆目录
 if [ -z "$ST_DIR" ]; then
@@ -31,18 +51,55 @@ echo "→ SillyTavern: $ST_DIR"
 
 # 1) 服务端插件
 PLUG="$ST_DIR/plugins/st-cloud-sync"
-mkdir -p "$PLUG"
-install -m 644 "$SRC/plugin/index.mjs" "$PLUG/index.mjs"
-echo "✓ 服务端插件 → $PLUG"
+SHIM='export * from "./plugin/index.mjs";   // 酒馆插件入口（安装脚本生成，未跟踪）'
+if [ "$GIT_MODE" = "1" ]; then
+  if ! command -v git >/dev/null 2>&1; then
+    echo "✗ --git 模式需要 git，但本机没装" >&2; exit 1
+  fi
+  if [ -d "$PLUG/.git" ]; then
+    echo "→ 已有 git 安装，拉取最新…"
+    git -C "$PLUG" fetch --quiet origin "$GIT_BRANCH"
+    git -C "$PLUG" checkout -q -B "$GIT_BRANCH" "origin/$GIT_BRANCH" 2>/dev/null \
+      || git -C "$PLUG" merge --ff-only "origin/$GIT_BRANCH"
+    echo "✓ 服务端插件已更新 → $PLUG（$(git -C "$PLUG" rev-parse --short HEAD)）"
+  else
+    OLDCFG=""; OLDLOG=""
+    if [ -f "$PLUG/config.json" ]; then OLDCFG="$(mktemp)"; cp -a "$PLUG/config.json" "$OLDCFG"; fi
+    if [ -f "$PLUG/last-sync.log" ]; then OLDLOG="$(mktemp)"; cp -a "$PLUG/last-sync.log" "$OLDLOG"; fi
+    if [ -d "$PLUG" ] && [ -n "$(ls -A "$PLUG" 2>/dev/null)" ]; then
+      BK="$PLUG.bak.stcs-$(date +%Y%m%d-%H%M%S)"
+      mv "$PLUG" "$BK"
+      echo "⚠ 已有旧安装，先挪到 $BK"
+    fi
+    git clone --quiet --branch "$GIT_BRANCH" "$REPO_URL" "$PLUG"
+    if [ -n "$OLDCFG" ] && [ -f "$OLDCFG" ]; then
+      mkdir -p "$PLUG/plugin"; cp -a "$OLDCFG" "$PLUG/plugin/config.json"
+      echo "✓ 已恢复原 config.json（你之前的配置没丢）"
+    fi
+    if [ -n "$OLDLOG" ] && [ -f "$OLDLOG" ]; then cp -a "$OLDLOG" "$PLUG/plugin/last-sync.log"; fi
+    echo "✓ 服务端插件（git 模式，可自动更新）→ $PLUG（$(git -C "$PLUG" rev-parse --short HEAD)）"
+    echo "  以后更新：./update.sh，或在酒馆面板点「检查更新 / 一键更新」"
+  fi
+  # 酒馆入口壳（未跟踪，git pull 不会动它）
+  if [ ! -f "$PLUG/index.mjs" ]; then
+    printf '%s\n' "$SHIM" > "$PLUG/index.mjs"
+  fi
+else
+  mkdir -p "$PLUG"
+  install -m 644 "$SRC/plugin/index.mjs" "$PLUG/index.mjs"
+  echo "✓ 服务端插件 → $PLUG"
+fi
 
 # 2) 前端扩展
+EXT_SRC="$SRC/extension"
+if [ "$GIT_MODE" = "1" ] && [ -d "$PLUG/extension" ]; then EXT_SRC="$PLUG/extension"; fi
 if [ "$INSTALL_GLOBAL_EXT" = "1" ]; then
   EXT="$ST_DIR/public/scripts/extensions/third-party/st-cloud-sync"
 else
   EXT="$ST_DIR/data/$USER_DIR/extensions/st-cloud-sync"
 fi
 mkdir -p "$EXT"
-install -m 644 "$SRC/extension/manifest.json" "$SRC/extension/index.js" "$SRC/extension/style.css" "$EXT/"
+install -m 644 "$EXT_SRC/manifest.json" "$EXT_SRC/index.js" "$EXT_SRC/style.css" "$EXT/"
 echo "✓ 前端扩展   → $EXT"
 
 # 3) 依赖检查

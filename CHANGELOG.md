@@ -2,6 +2,17 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)（语义化版本 `MAJOR.MINOR.PATCH`）。
 
+## [v1.2.0] — 2026-09-25
+
+插件能自己更新了 🎉
+
+- 🔄 **一键更新 / 自动拉取**：面板新增「检查更新」与「⬆️ 一键更新」。检查会用 `git fetch` 比对远端，告诉你落后几个提交、新版是什么；一键更新执行 `git pull --ff-only`，并自动把 `extension/` 三件套一起刷到酒馆扩展目录（否则浏览器还是旧界面），完成后提示**重启酒馆**生效。
+  - 新增配置：`updateBranch`(默认 `main`)、`autoUpdateCheckMinutes`(默认 `0`=关)、`autoUpdate`(默认 `false`)。
+  - 新增 API：`GET /update`、`POST /update/check`、`POST /update/apply`；`GET /status` 也会带上更新状态。
+- 📦 **`install.sh --git`**：直接把本仓库 `git clone` 到 `plugins/st-cloud-sync/`，插件目录成为 git 工作区 → 酒馆自带的「更新插件」按钮也能用；已有 `config.json` 会自动保留。
+- 🆕 **`update.sh`**：命令行一键更新（pull + 刷新扩展 + 提示重启）。
+- 🧯 非 git 安装会在面板里明确提示「不是 git 安装，跑一次 `./install.sh --git` 即可」，不会静默失败。
+- 📚 文档：README / `docs/INSTALL.md` 新增「自动更新」与 `--git` 安装说明。
 ## [v1.1.0] — 2026-09-25
 
 增量/定向同步 + 实时进度，都在面板里点。

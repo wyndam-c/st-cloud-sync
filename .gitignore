@@ -3,6 +3,9 @@ plugin/config.json
 plugin/last-sync.log
 *.log
 
+# git 安装模式下的酒馆入口壳（由 install.sh 生成，不属于仓库）
+/index.mjs
+
 # 系统
 .DS_Store
 Thumbs.db
