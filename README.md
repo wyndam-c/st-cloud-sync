@@ -151,7 +151,7 @@ ssh -i ~/.ssh/cloud_sync_ed25519 root@REMOTE_HOST hostname
 
 ## 📄 License
 
-[MIT](LICENSE) © 2026 WhiteCrow
+[MIT](LICENSE) © 2026 wyndam-c
 
 ## 🏷️ 版本
 
