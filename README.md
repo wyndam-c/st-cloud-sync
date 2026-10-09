@@ -26,6 +26,12 @@ A SillyTavern **server plugin + extension** that **bidirectionally** syncs the w
 - 🧩 **零第三方运行时依赖**：插件只用 Node 内置模块；引擎是系统的 `unison` + `ssh`。
 - 🧯 **默认不动服务端私有文件**：`_storage`(账号库) / `cookie-secret.txt` / 日志 / 构建产物自动排除。
 
+## 📚 文档
+
+- [Unison 点对点部署（默认方案）](docs/INSTALL.md)
+- [星形同步方案（Syncthing · 多中枢）](docs/STAR_SYNC.md) —— 家用↔中枢↔东京 三台双向，适合 NAT 后/随时重启的场景
+- [常见问题排查](docs/TROUBLESHOOTING.md)
+
 ## 🧠 工作原理
 
 ```
